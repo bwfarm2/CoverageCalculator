@@ -177,7 +177,7 @@ def calc_best_overlap(rows,sep):
         color="Black"
         ))
         return fig,"The optimized overlap is: "+str(numpy.argmin(var)*sep)+" units between passes."
-
+server=app.server
 
 
 
