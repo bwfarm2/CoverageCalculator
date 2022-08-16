@@ -16,6 +16,8 @@ title_base64=base64.b64encode(open(title_png,'rb').read()).decode('ascii')
 
 app = Dash(__name__)
 
+server=app.server
+
 app.layout = html.Div([
         html.Div(html.Img(src='data:/image/png;base64,{}'.format(title_base64),style={'display':'block','max-width':'60%','margin':'auto'}),style={'margin':'auto','min-width':'100%'}),
         html.Br(),
@@ -177,7 +179,7 @@ def calc_best_overlap(rows,sep):
         color="Black"
         ))
         return fig,"The optimized overlap is: "+str(numpy.argmin(var)*sep)+" units between passes."
-server=app.server
+
 
 
 
