@@ -1,2 +1,6 @@
-dash>=2.6.1
-numpy>=1.20.3
+dash==2.6.1
+dash-core-components==2.0.0
+dash-html-components==2.0.0
+dash-table==5.0.0
+numpy @ file:///C:/ci/numpy_and_numpy_base_1626271900803/work
+guinicorn==20.1.0
