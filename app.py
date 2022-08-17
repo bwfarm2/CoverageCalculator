@@ -27,7 +27,7 @@ app.layout = html.Div([
             a est non mi porttitor euismod. Donec arcu urna, efficitur et lorem et, condimentum cursus mauris. Morbi sed volutpat sapien.
             Morbi sit amet ligula arcu. Curabitur convallis blandit velit, id gravida ipsum suscipit a.""",style={'max-width':'500px', 'text-algin':'center','margin-left':'auto','margin-right':'auto'}),
         html.Br(),
-        html.Table([html.Tr([html.Td([html.Div(["Expected Throw Distance: ",dcc.Input(id="tot_dis",type='number',min=1,placeholder=1,value=1,autoFocus=True,inputMode="numeric")]),
+        html.Table([html.Tr([html.Td([html.Div(["Expected Broadcast Distance: ",dcc.Input(id="tot_dis",type='number',min=1,placeholder=1,value=1,autoFocus=True,inputMode="numeric")]),
         html.Br(),
         html.Div(["Number of pans used: ",dcc.Input(id="num_pans",type='number',min=3,placeholder=3,value=3,autoFocus=False,inputMode="numeric",step=2)]),
         html.Br(),
