@@ -22,11 +22,27 @@ server=app.server
 app.layout = html.Div([
         html.Div(html.Img(src='data:/image/png;base64,{}'.format(title_base64),style={'display':'block','max-width':'60%','margin':'auto'}),style={'margin':'auto','min-width':'100%'}),
         html.Br(),
-        html.Div("""Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse in enim sed metus tristique 
-            tincidunt bibendum non nunc. Vivamus pellentesque hendrerit leo, eget tempor neque rutrum quis. Vivamus ac sem neque. 
-            Proin augue metus, pellentesque non elit ut, condimentum accumsan felis. Nulla condimentum rutrum consectetur. Aliquam 
-            a est non mi porttitor euismod. Donec arcu urna, efficitur et lorem et, condimentum cursus mauris. Morbi sed volutpat sapien.
-            Morbi sit amet ligula arcu. Curabitur convallis blandit velit, id gravida ipsum suscipit a.""",style={'max-width':'500px', 'text-algin':'center','margin-left':'auto','margin-right':'auto'}),
+        html.Div([
+            html.Div("""This calculator outputs the optimal swath width for a particular implement based on the calibration method described in “”."""),
+            html.Br(),
+            html.Div("""1)	Input the number of pans used to collect the dispersed media under “Number of pans used”.""",style={'max-width':'500px', 'text-algin':'center','margin-left':'10px','margin-right':'auto'}),
+            html.Br(),
+            html.Div("""2)	Input the value for the separation between pans and choose the corresponding units.""",style={'max-width':'500px', 'text-algin':'center','margin-left':'10px','margin-right':'auto'}),
+            html.Br(),
+            html.Div("""3)	On the table to the right, for each pan input the numeric value for “Measure of Pan”.""",style={'max-width':'500px', 'text-algin':'center','margin-left':'10px','margin-right':'auto'}),
+            html.Br(),
+            html.Div("""4)	If a value is unknown, for example if the first pan from the middle on either side needed to be removed for clearance. Mark the the checkbox to the left of the corresponding "Pan Number" and the average value of the adjacent pans will be inserted.""",style={'max-width':'500px', 'text-algin':'center','margin-left':'10px','margin-right':'auto'}),
+            html.Br(),
+            html.Div("""5)	There are four plots that are generated:""",style={'max-width':'500px', 'text-algin':'center','margin-left':'10px','margin-right':'auto'}),
+            html.Div("""i.	Raw Data – The calibration pan measurements plotted against the distance from machine.""",style={'max-width':'500px', 'text-algin':'center','margin-left':'30px','margin-right':'auto'}),
+            html.Br(),
+            html.Div("""ii.	Normalized/Symmetric Data – This plot represents the average of the left-hand and right-hand data to better approximate overlapping passes.""",style={'max-width':'500px', 'text-algin':'center','margin-left':'30px','margin-right':'auto'}),
+            html.Br(),
+            html.Div("""iii.	CV vs Swath Width – The “goodness” of a particular swath width is determined by minimizing the coefficient of variation.  The slider controls the vertical line position to illustrate how the CV changes with swath width.""",style={'max-width':'500px', 'text-algin':'center','margin-left':'30px','margin-right':'auto'}),
+            html.Br(),
+            html.Div("""iv.	Optimized Path Distribution – This plot displays the distribution of material for each pass.  The swath width varies depending upon the slider value of “CV vs Swath Width”.""",style={'max-width':'500px', 'text-algin':'center','margin-left':'30px','margin-right':'auto'}),
+            html.Br(),
+        ],style={'max-width':'500px', 'text-algin':'center','margin-left':'auto','margin-right':'auto'}),
         html.Table([html.Tr([html.Td([
         html.Div(["Number of pans used: ",dcc.Input(id="num_pans",type='number',min=3,placeholder=3,value=3,autoFocus=False,inputMode="numeric",step=2,debounce=True)]),
         html.Br(),
