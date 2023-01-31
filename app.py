@@ -125,7 +125,7 @@ def add_row(sel_row,n_rows, sep, rows):
             #print(sel_row[0])
             if sel_row[i]!=0 and sel_row[i]!=len(rows):
                 print(rows[sel_row[i]])
-                rows[sel_row[i]]['weight']=float((float(rows[sel_row[i]+1]['weight'])+float(rows[sel_row[i]-1]['weight']))/2.0)
+                rows[sel_row[i]]['weight']=round(float((float(rows[sel_row[i]+1]['weight'])+float(rows[sel_row[i]-1]['weight']))/2.0),4)
     return rows,int(n_rows-1)*sep,3*sep,sep
     
 @app.callback(
