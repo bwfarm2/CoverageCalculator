@@ -50,14 +50,16 @@ app.layout = html.Div([
         html.Br(),
         html.Div(["Pan Spacing: ",dcc.Input(id="dis_pans",type='number',min=.001,placeholder=1,value=1,autoFocus=False,inputMode="numeric",debounce=True),
         html.Br(),
-        dcc.RadioItems(['in', 'ft', 'cm', 'meters'],value='ft',id="units"),])]),
+        dcc.RadioItems(['in', 'ft', 'cm', 'meters'],value='ft',id="units"),
+        html.Br(),
+        html.Div("""Place a check next to missing pans after other data are entered""",style={'text-align': 'center', 'background-color':'red','color':'white'})])]),
         html.Td([html.Div([dash_table.DataTable(
         id='adding-rows-table',
         columns=[{'name': "Pan Number",'id': 'number', 'editable':False, 'deletable':False, 'renamable':False, 'type':'numeric'},{'name': 'Amount in Pan','id': 'weight','deletable': False,'renamable': False,'type': 'numeric','editable':True},{'name': 'Distance from Center','id': 'dis','deletable': False,'renamable': False,'type': 'numeric','editable':False}],
         data=[],
+        editable=True,
         row_deletable=False,
         fill_width=False,
-        persistence=True,
         row_selectable='multi',
         style_data_conditional=[{
             'if': {
@@ -126,7 +128,7 @@ def add_row(sel_row,n_rows, sep, rows):
             if sel_row[i]!=0 and sel_row[i]!=len(rows):
                 print(rows[sel_row[i]])
                 rows[sel_row[i]]['weight']=round(float((float(rows[sel_row[i]+1]['weight'])+float(rows[sel_row[i]-1]['weight']))/2.0),4)
-    return rows,int(n_rows-1)*sep,3*sep,sep
+    return rows,int(n_rows-1)*sep,int(n_rows/2)*sep,sep
     
 @app.callback(
     Output('adding-rows-table', 'style_data_conditional'),
@@ -146,11 +148,12 @@ def update_trac_location(n_rows):
 @app.callback(
     Output('adding-rows-graph', 'figure'),
     Output('symmetric-normalized-graph', 'figure'),
-    Input('adding-rows-table', 'data'),)
-def display_output(rows):
+    Input('adding-rows-table', 'data'),
+    Input('units','value'))
+def display_output(rows,units):
     fig=px.line(x=[k.get('dis') for k in rows],y=[float(k.get('weight')) for k in rows],markers=True,line_shape="spline")
     fig.add_bar(x=[k.get('dis') for k in rows],y=[float(k.get('weight')) for k in rows])
-    fig.update_layout(xaxis_title='Distance from Center',yaxis_title='Amount In Pan',showlegend=False, title={'text':"Spread Pattern",'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
+    fig.update_layout(xaxis_title='Distance from Center ('+str(units)+')',yaxis_title='Amount In Pan',showlegend=False, title={'text':"Spread Pattern",'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
     family="Courier New, monospace",
     size=18,
     color="Black"
@@ -161,7 +164,7 @@ def display_output(rows):
         total=float(1)
     fig2=px.line(x=[k.get('dis') for k in rows],y=numpy.divide(y2,total),markers=True,line_shape="spline")
     fig2.add_bar(x=[k.get('dis') for k in rows],y=numpy.divide(y2,total))
-    fig2.update_layout(xaxis_title='Distance from Center',yaxis_title='Normalized Distribution',showlegend=False, title={'text':"Normalized/Symmetric Pattern",'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
+    fig2.update_layout(xaxis_title='Distance from Center ('+str(units)+')',yaxis_title='Normalized Distribution',showlegend=False, title={'text':"Normalized/Symmetric Pattern",'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
     family="Courier New, monospace",
     size=18,
     color="Black"
@@ -183,7 +186,7 @@ def calc_opt(rows,sep,units):
     else:
         normy=0
     var=[]
-    for k in range(3,int(len(rows))):
+    for k in range(int(len(rows)/2),int(len(rows))):
         padleft=numpy.pad(normy,(k,0),mode='constant',constant_values=0)
         padright=numpy.pad(normy,(0,k),mode='constant',constant_values=0)
         shifted=numpy.add(padleft,padright)
@@ -195,16 +198,18 @@ def calc_opt(rows,sep,units):
         pass
     else:
         var=[1,2,3]
-    optpath=numpy.max(numpy.argwhere(numpy.sign(numpy.gradient(var))==-1))
-    return (optpath+4)*sep,"The optimal swath width is: "+str((optpath+4)*sep)+" "+str(units)+" between passes."
+    optpath=numpy.argmin(var)
+    return (optpath+int(len(rows)/2))*sep,"The optimal swath width is: "+str((optpath+int(len(rows)/2))*sep)+" "+str(units)+" between passes."
 
 @app.callback(
     Output('best-overlap', 'figure'),
+    Output('swath-dist', 'figure'),
     Input('swath-slider','value'),
     Input('adding-rows-table', 'data'),
     Input('dis_pans', 'value'),
+    Input('units','value')
 )
-def calc_best_overlap(sliderloc,rows,sep):
+def calc_best_overlap(sliderloc,rows,sep,units):
     rawy=numpy.add([float(k.get('weight')) for k in rows],[float(k.get('weight')) for k in rows[::-1]])
     total=numpy.sum(rawy)
     if total!=0:
@@ -212,7 +217,7 @@ def calc_best_overlap(sliderloc,rows,sep):
     else:
         normy=0
     var=[]
-    for k in range(3,int(len(rows))):
+    for k in range(int(len(rows)/2),int(len(rows))):
         padleft=numpy.pad(normy,(k,0),mode='constant',constant_values=0)
         padright=numpy.pad(normy,(0,k),mode='constant',constant_values=0)
         shifted=numpy.add(padleft,padright)
@@ -224,24 +229,14 @@ def calc_best_overlap(sliderloc,rows,sep):
         pass
     else:
         var=[1,2,3]
-    fig=px.line(x=numpy.multiply(numpy.arange(3,int(len(rows))),sep),y=var)
-    fig.update_layout(xaxis_title='Swath Width',yaxis_title='CV',showlegend=False, title={'text':"CV vs. Swath Width",'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
+    fig=px.line(x=numpy.multiply(numpy.arange(int(len(rows)/2),int(len(rows))),sep),y=var)
+    fig.update_layout(xaxis_title='Swath Width ('+str(units)+')',yaxis_title='CV',showlegend=False, title={'text':"CV vs. Swath Width",'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
     family="Courier New, monospace",
     size=18,
     color="Black"
     )
     )
     fig.add_vline(x=sliderloc, line_width=3, line_dash="dash", line_color="#0033a0")
-
-    return fig
-
-@app.callback(
-    Output('swath-dist', 'figure'),
-    Input('swath-slider','value'),
-    Input('adding-rows-table', 'data'),
-    Input('dis_pans', 'value'),
-)
-def output_dis(sliderloc,rows,sep):
     rawy=numpy.add([float(k.get('weight')) for k in rows],[float(k.get('weight')) for k in rows[::-1]])
     total=numpy.sum(rawy)
     if total!=0:
@@ -260,14 +255,14 @@ def output_dis(sliderloc,rows,sep):
     for k in range(int(len(rows)/2),int(len(rows)/2)+value+1):
         xs.append(j*sep)
         j+=1
-    fig=px.line(x=xs,y=normlrm,markers=True,line_shape="spline")
-    fig.add_bar(x=xs,y=normlrm)
-    fig.update_layout(yaxis_title=' ',xaxis_title='Distance from Center',showlegend=False, title={'text':"Expected Distribution Between Swaths",'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
+    fig2=px.line(x=xs,y=normlrm,markers=True,line_shape="spline")
+    fig2.add_bar(x=xs,y=normlrm)
+    fig2.update_layout(yaxis_title=' ',xaxis_title='Distance from Center ('+str(units)+')',showlegend=False, title={'text':"Expected Distribution Between Swaths <br> CV = "+str(round(var[int(sliderloc/sep)-int(len(rows)/2)],2)),'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
     family="Courier New, monospace",
     size=18,
     color="Black"
     ))
-    return fig
+    return fig,fig2
 
 if __name__ == '__main__':
     app.run_server(debug=True)
