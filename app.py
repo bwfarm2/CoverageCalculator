@@ -16,6 +16,7 @@ title_png='20230130-Title-Rev2.png'
 title_base64=base64.b64encode(open(title_png,'rb').read()).decode('ascii')
 
 app = Dash(__name__)
+app.title = "CoverageCalculator"
 
 server=app.server
 
