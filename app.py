@@ -3,6 +3,7 @@ from dash.dependencies import Input, Output, State
 import plotly.express as px
 import base64
 import numpy
+import visdcc
 from scipy.stats import variation 
 
 def isnotfloat(num):
@@ -53,7 +54,18 @@ app.layout = html.Div([
         html.Br(),
         dcc.RadioItems(['in', 'ft', 'cm', 'meters'],value='ft',id="units"),
         html.Br(),
-        html.Div("""Place a check next to missing pans after other data are entered""",style={'text-align': 'center', 'background-color':'red','color':'white'})])]),
+        html.Div("""Place a check next to missing pans after other data are entered""",style={'text-align': 'center', 'background-color':'red','color':'white'}),
+        html.Br(),
+        dcc.Textarea(id='notes',
+        value='Insert any notes here.',
+        wrap='True',
+        draggable=False,
+        style={'width': '90%', 'height': 150, 'display':'block','resize':'none'},),
+        html.Br(),
+        html.Button("Print Report", id="click1",style={'align':'center'}),
+        visdcc.Run_js(id = 'javascript'),
+        ])]),
+
         html.Td([html.Div([dash_table.DataTable(
         id='adding-rows-table',
         columns=[{'name': "Pan Number",'id': 'number', 'editable':False, 'deletable':False, 'renamable':False, 'type':'numeric'},{'name': 'Amount in Pan','id': 'weight','deletable': False,'renamable': False,'type': 'numeric','editable':True},{'name': 'Distance from Center','id': 'dis','deletable': False,'renamable': False,'type': 'numeric','editable':False}],
@@ -69,20 +81,20 @@ app.layout = html.Div([
             'backgroundColor': 'dodgerblue',
             'color': 'white'
         }]
-    ),])])]),
+    ),],style = {'page-break-before': 'always'})])]),
     html.Tr([html.Td([
-    dcc.Graph(id='adding-rows-graph'),
+    dcc.Graph(id='adding-rows-graph',style = {'page-break-before': 'always'}),
     html.Br(),
     dcc.Graph(id='symmetric-normalized-graph'),
     html.Br(),
-    html.Div(id='overlap-value',style={'font-size':24, 'font-weight':'bold'}),
+    html.Div(id='overlap-value',style={'font-size':24, 'font-weight':'bold', 'page-break-before': 'always'}),
     ],colSpan='2')]),
     html.Tr([html.Td([
         dcc.Slider(0,1,1,id='swath-slider',value=1),
         html.Br(),
         dcc.Graph(id='best-overlap'),
         html.Br(),
-        dcc.Graph(id='swath-dist'),
+        dcc.Graph(id='swath-dist', style={'page-break-before': 'always'}),
         ],colSpan='2')
     ])],style={'max-width':'650px','margin':'auto'})])
 
@@ -150,10 +162,14 @@ def update_trac_location(n_rows):
     Output('adding-rows-graph', 'figure'),
     Output('symmetric-normalized-graph', 'figure'),
     Input('adding-rows-table', 'data'),
-    Input('units','value'))
-def display_output(rows,units):
-    fig=px.line(x=[k.get('dis') for k in rows],y=[float(k.get('weight')) for k in rows],markers=True,line_shape="spline")
+    Input('units','value'),
+    Input('dis_pans', 'value')
+)
+def display_output(rows,units,sep):
+    fig=px.line(x=[k.get('dis') for k in rows],y=[float(k.get('weight')) for k in rows],markers=True,line_shape="linear")
     fig.add_bar(x=[k.get('dis') for k in rows],y=[float(k.get('weight')) for k in rows])
+    fig.add_vline(x=0-sep/5, line_width=2, line_dash="dash", line_color="black")
+    fig.add_vline(x=0+sep/5, line_width=2, line_dash="dash", line_color="black")
     fig.update_layout(xaxis_title='Distance from Center ('+str(units)+')',yaxis_title='Amount In Pan',showlegend=False, title={'text':"Spread Pattern",'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
     family="Courier New, monospace",
     size=18,
@@ -163,8 +179,10 @@ def display_output(rows,units):
     total=float(numpy.sum(y2))
     if total==0:
         total=float(1)
-    fig2=px.line(x=[k.get('dis') for k in rows],y=numpy.divide(y2,total),markers=True,line_shape="spline")
+    fig2=px.line(x=[k.get('dis') for k in rows],y=numpy.divide(y2,total),markers=True,line_shape="linear")
     fig2.add_bar(x=[k.get('dis') for k in rows],y=numpy.divide(y2,total))
+    fig2.add_vline(x=0-sep/5, line_width=2, line_dash="dash", line_color="black")
+    fig2.add_vline(x=0+sep/5, line_width=2, line_dash="dash", line_color="black")
     fig2.update_layout(xaxis_title='Distance from Center ('+str(units)+')',yaxis_title='Normalized Distribution',showlegend=False, title={'text':"Normalized/Symmetric Pattern",'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
     family="Courier New, monospace",
     size=18,
@@ -201,6 +219,15 @@ def calc_opt(rows,sep,units):
         var=[1,2,3]
     optpath=numpy.argmin(var)
     return (optpath+int(len(rows)/2))*sep,"The optimal swath width is: "+str((optpath+int(len(rows)/2))*sep)+" "+str(units)+" between passes."
+
+@app.callback(
+Output('javascript', 'run'),
+[Input('click1', 'n_clicks')])
+
+def myfun(x):
+    if x:
+        return "window.print()"
+    return ""
 
 @app.callback(
     Output('best-overlap', 'figure'),
@@ -245,20 +272,28 @@ def calc_best_overlap(sliderloc,rows,sep,units):
     else:
         normy=0
     value=int(sliderloc/sep)
-    padleft=numpy.pad(normy,(value,0),mode='constant',constant_values=0)
-    padright=numpy.pad(normy,(0,value),mode='constant',constant_values=0)
-    padlrm=numpy.add(padleft,padright)
-    padlrm=padlrm[int(len(rows)/2):int(len(rows)/2+value+1)]
-    total=numpy.sum(padlrm)
-    normlrm=numpy.divide(padlrm,total)
+    padmiddle=numpy.pad(normy,(value,value),mode='constant',constant_values=0)
+    padleft=numpy.pad(normy,(2*value,0),mode='constant',constant_values=0)
+    padright=numpy.pad(normy,(0,2*value),mode='constant',constant_values=0)
+    padlrm=numpy.add(numpy.add(padleft,padright),padmiddle)
+    padlrm=padlrm[int(len(padlrm)/2)-value:int(len(padlrm)/2)+value+1]
+    #total=numpy.sum(padlrm) #Removing second normalization.
+    #normlrm=numpy.divide(padlrm,3)
     xs=[]
     j=0
-    for k in range(int(len(rows)/2),int(len(rows)/2)+value+1):
+    for k in range(int(len(padlrm)/2)-value,int(len(padlrm)/2)+value+1):
         xs.append(j*sep)
         j+=1
-    fig2=px.line(x=xs,y=normlrm,markers=True,line_shape="spline")
-    fig2.add_bar(x=xs,y=normlrm)
-    fig2.update_layout(yaxis_title=' ',xaxis_title='Distance from Center ('+str(units)+')',showlegend=False, title={'text':"Expected Distribution Between Swaths <br> CV = "+str(round(var[int(sliderloc/sep)-int(len(rows)/2)],2)),'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
+    xs=numpy.add(xs,-value*sep)
+    fig2=px.line(x=xs,y=padlrm,markers=True,line_shape="linear")
+    fig2.add_bar(x=xs,y=padlrm)
+    fig2.add_vline(x=-value*sep-sep/5, line_width=2, line_dash="dash", line_color="black")
+    fig2.add_vline(x=-value*sep+sep/5, line_width=2, line_dash="dash", line_color="black")
+    fig2.add_vline(x=0-sep/5, line_width=2, line_dash="dash", line_color="black")
+    fig2.add_vline(x=0+sep/5, line_width=2, line_dash="dash", line_color="black")
+    fig2.add_vline(x=value*sep-sep/5, line_width=2, line_dash="dash", line_color="black")
+    fig2.add_vline(x=value*sep+sep/5, line_width=2, line_dash="dash", line_color="black")
+    fig2.update_layout(yaxis_title='Normalized Distribution',xaxis_title='Distance from Center ('+str(units)+')', showlegend=False, title={'text':"Expected Distribution Between Swaths <br> CV = "+str(round(var[int(sliderloc/sep)-int(len(rows)/2)],2)),'y':0.95,'x':0.5,'xanchor':'center','yanchor':'top'},font=dict(
     family="Courier New, monospace",
     size=18,
     color="Black"
